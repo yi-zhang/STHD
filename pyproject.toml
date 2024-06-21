@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = [
+    "version",
+    "dependencies",
+]
+name = "STHD"
+authors = [
+    {name = "Yi Zhang", email = "yi.zhang@duke.edu"},
+]
+description = "STHD: probabilistic cell typing of single Spots in whole Transcriptome spatial data with High Definition"
+readme = "README.md"
+requires-python = ">=3.8.3"
+license = {file = "LICENSE"}
+keywords = [
+    "spatial transcriptomics", 
+    "machine learning",
+    "single-cell genomics",
+]
+
+# [TODO] A list of URLs associated with your project, 
+# Displayed on the left sidebar of your PyPI project page.
+[project.urls]
+Authors = "https://yi-zhang-compbio-lab.github.io/"
+Documentation = "https://readthedocs.org"
+Repository = "https://github.com/yi-zhang/STHD.git"
+
+[tool.hatch.version]
+path = "STHD/__init__.py"
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
+[tool.hatch.build.targets.sdist]
+include = ["STHD/*.py"]

@@ -1,0 +1,10 @@
+extend-exclude = ["STHD_legacy"] # ignore the STHD_legacy folder for both linting and formating.
+[lint]
+extend-select = ["I", "D"] # add isort and pydocstyle rules during linting.
+ignore = [
+    "D100", "D101", "D102", "D103", "D104", # Missing docstring in public module, class, method, function, package
+    "D400", "D415", # Docstring first line should end with a period.
+    "D401", # First line of docstring should be in imperative mood.
+    "D205", # 1 blank line required between summary and description.
+]
+
