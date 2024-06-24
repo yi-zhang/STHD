@@ -24,7 +24,7 @@
   - install dependencies: `pip install -r STHD/requirements.txt`
   - making sure `./STHD` is in python path, e.g adding via `sys.path.append('./STHD')`
   - then in script: `from STHD import {the module you need}`
-- pip package coming soon
+- Beta version - pip package coming soon; also finalizing details of comprehensive tutorials! 
 
 ## STHD Quickstart using a colon cancer VisiumHD patch:
 
@@ -36,3 +36,5 @@
 - Required input includes 2um level spatial expression: `square_002um` , which usually contains filtered_feature_bc_matrix.h5 and spatial/tissue_positions.csv . It is often from the downloaded folder "Binned outputs (all bin levels)". tissue positions in .parquet format can be converted using STHD/hdpp.py.
 - Required input also includes full-resolution H&E image: Visium_HD_Human_Colon_Cancer_tissue_image.btf. It is often from the "Microscope image".
 
+## References
+- bioRxiv link coming
