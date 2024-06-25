@@ -7,6 +7,7 @@
 - Input: VisiumHD data and reference scRNA-seq dataset with cell type annotation.
 - Output: cell type labels and probabilities at 2um spot level.
 - Visualization - STHDviewer: interactive, scalable, and fast spatial plot of spot cell type labels, in a HTML.
+<img width="862" alt="git_fig" src="https://github.com/yi-zhang/STHD/assets/13487451/cb6771fc-d766-4cb8-a38e-a2f659985f57">
 
 ---
 
