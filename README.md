@@ -1,5 +1,5 @@
 # STHD: probabilistic cell typing of Single spots in whole Transcriptome spatial data with High Definition
-
+<img width="862" alt="sthd_git1fig" src="https://github.com/user-attachments/assets/2477197e-888f-4383-b5cd-e7e256eefbc0">
 ---
 
 - Quick start: `notebooks/tutorial.ipynb`
@@ -8,6 +8,7 @@
 - Output: cell type labels and probabilities at 2um spot level.
 - Visualization - STHDviewer: interactive, scalable, and fast spatial plot of spot cell type labels, in a HTML.
 
+
 ---
 
 - Author: Yi Zhang, PhD, yi.zhang@duke.edu
@@ -15,6 +16,7 @@
 - STHDviewer of VisiumHD colon cancer sample with near 9 million spots: [STHDviewer_colon_cancer_HD](https://yi-zhang-compbio-lab.github.io/STHDviewer_colon_cancer_hd)
 - We provided [test data](https://duke.box.com/v/yi-zhang-duke-sthd-test). Download this folder and put as `./testdata/`
 
+## Install
 ---
 - python version requirement: >=3.8.3
 - How to use
