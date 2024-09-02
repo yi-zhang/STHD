@@ -1,3 +1,8 @@
+"""
+Example
+python3 STHD/train.py --refile ../testdata/crc_average_expr_genenorm_lambda_98ct_4618gs.txt --patch_list ../testdata/crop10large//patches/52979_9480 ../testdata/crop10large//patches/57479_9480 ../testdata/crop10large//patches/52979_7980 ../testdata/crop10large//patches/55979_7980 ../testdata/crop10large//patches/57479_7980 ../testdata/crop10large//patches/54479_9480 ../testdata/crop10large//patches/55979_9480 ../testdata/crop10large//patches/54479_7980
+"""
+
 import argparse
 import os
 from time import time
@@ -41,6 +46,9 @@ def train(sthd_data, n_iter, step_size, beta, debug=False, early_stop=False):
 def fill_p_filtered_to_p_full(
     P_filtered, sthd_data_filtered, genemeanpd_filtered, sthd_data
 ):
+    """For prediction performed for filtered data, put P_filtered back to full data size and fill -1.
+    sthd_data cannot already have the probability columns
+    """
     P_filtered_df = pd.DataFrame(
         P_filtered,
         index=sthd_data_filtered.adata.obs.index,
@@ -57,6 +65,9 @@ def fill_p_filtered_to_p_full(
 
 
 def predict(sthd_data, p, genemeanpd_filtered, mapcut=0.8):
+    """Based on per barcode per cell type probability, predict cell type and put prediction in adata.
+    sthd_data = predict(sthd_data, p, genemeanpd_filtered, mapcut= 0.8)
+    """
     adata = sthd_data.adata.copy()
     for i, ct in zip(
         range(len(genemeanpd_filtered.columns)), genemeanpd_filtered.columns
@@ -96,6 +107,13 @@ def predict(sthd_data, p, genemeanpd_filtered, mapcut=0.8):
 
 
 def save_prediction_pdata(sthdata, file_path=None, prefix=""):
+    """Save from sthdata the pdata into dataframe with probabilities, predicted cell type, and x, y
+
+    Example:
+    -------
+    pdata = train.save_prediction_pdata(sthdata, file_path = '', prefix = '')
+
+    """
     predcols = (
         ["x", "y"]
         + ["STHD_pred_ct"]
@@ -114,6 +132,7 @@ def save_prediction_pdata(sthdata, file_path=None, prefix=""):
 
 
 def load_data(file_path):
+    """Load expr data. Only works with cropped data."""
     sthd_data = sthdio.STHD(
         spatial_path=os.path.join(file_path, "adata.h5ad.gzip"),
         counts_data=None,
@@ -131,6 +150,14 @@ def load_pdata(file_path, prefix=""):
 
 
 def add_pdata(sthd_data, pdata):
+    """Load from pdata into dataframe with probabilities, predicted cell type, and x, y, and put in sthdata
+    to rename: put_pdata_to_sthdata
+
+    Example:
+    -------
+    pdata = train.add_pdata(sthdata, pdata)
+
+    """
     sthdata = sthd_data
     exist_cols = sthdata.adata.obs.columns.intersection(pdata.columns)
     print("[Log] Loading prediction into sthdata.adata.obs, overwriting")
@@ -144,7 +171,119 @@ def add_pdata(sthd_data, pdata):
 
 
 def load_data_with_pdata(file_path, pdata_prefix=""):
+    """A simplified
+    Load full prediction for the patch. need os.path.join(file_path, pdata_prefix+_pdata.h5ad)
+    Return adata with probability and predicted cell type in .obs
+    contains all gene expression
+    [] todo: deprecate
+    """
     sthdata = load_data(file_path)
     pdata = load_pdata(file_path, pdata_prefix)
     sthdata_with_pdata = add_pdata(sthdata, pdata)
     return sthdata_with_pdata
+
+
+##########
+
+
+def main(args):
+    start = time()
+    for patch_path in args.patch_list:
+        print(f"[log] {time() - start:.2f}, start processing patch {patch_path}")
+        if args.filtermask:
+            sthdata = load_data(patch_path)
+            print(sthdata.adata.shape)
+            sthdata.adata = qcmask.background_detector(
+                sthdata.adata,
+                threshold=args.filtermask_threshold,
+                n_neighs=4,
+                n_rings=args.filtermask_nrings,
+            )
+            print(sthdata.adata.shape)
+            # visualize_background(sthdata)
+            sthdata_filtered = qcmask.filter_background(
+                sthdata, threshold=args.filtermask_threshold
+            )
+            sthdata_filtered, genemeanpd_filtered = sthdata_match_refgene(
+                sthdata_filtered, args.refile, ref_renorm=args.ref_renorm
+            )
+            print("[Log]Training")
+            P_filtered = train(sthdata_filtered, args.n_iter, args.step_size, args.beta)
+            P = fill_p_filtered_to_p_full(
+                P_filtered, sthdata_filtered, genemeanpd_filtered, sthdata
+            )
+        else:
+            sthdata = load_data(patch_path)
+            sthdata, genemeanpd_filtered = sthdata_match_refgene(
+                sthdata, args.refile, ref_renorm=args.ref_renorm
+            )
+            print("[Log]Training")
+            P = train(sthdata, args.n_iter, args.step_size, args.beta)
+
+        sthdata = predict(sthdata, P, genemeanpd_filtered, mapcut=args.mapcut)
+        _ = save_prediction_pdata(sthdata, file_path=patch_path, prefix="")
+        print("[Log]prediction saved")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--n_iter",
+        default=23,
+        type=int,
+        help="iteration to optimize LL and CE. recommended 23 (tuned for human colon cancer sample)0",
+    )
+    parser.add_argument("--step_size", default=1, type=int)
+    parser.add_argument(
+        "--beta",
+        default=0.1,
+        type=float,
+        help="beta parameter for borrowing neighbor info. recommended 0.1",
+    )
+    parser.add_argument(
+        "--mapcut",
+        default=0.8,
+        type=float,
+        help="posterior cutoff for celltype prediction",
+    )
+    parser.add_argument(
+        "--refile", type=str, help="reference normalized gene mean expression."
+    )
+    parser.add_argument(
+        "--ref_renorm", default=False, type=bool, help="recommended False"
+    )
+    parser.add_argument(
+        "--filtermask", type=bool, default=True, help="whether to filter masked spots"
+    )
+    parser.add_argument(
+        "--filtermask_nrings",
+        default=2,
+        type=int,
+        help="auto detection of low-count region: number of rings to consider neighbor",
+    )
+    parser.add_argument(
+        "--filtermask_threshold",
+        default=51,
+        type=int,
+        help="auto detection of low-count region: number of total counts",
+    )
+    parser.add_argument(
+        "--patch_list", nargs="+", default=[], help="a space separated patch path list"
+    )
+
+    args = parser.parse_args()
+    
+    main(args)
+    
+    """
+    # quick test
+    class Args:
+    def __init__(self):
+        self.n_iter=10
+        self.step_size = 1
+        self.beta = 0.1
+        self.refile =  '../testdata/crc_average_expr_genenorm_lambda_98ct_4618gs.txt'
+        self.filtermask = True
+        self.patch_list = ['../testdata/crop10']
+    train.main(Args())
+    """

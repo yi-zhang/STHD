@@ -1,3 +1,6 @@
+"""Generate Color Palettes w.r.t. input names. 
+"""
+
 import colorsys
 import matplotlib
 from STHD import config
@@ -88,6 +91,20 @@ def get_config_colormap(name="colormap_coloncatlas_98"):
 
 
 def adjust_lightness(hex_color, adjustment):
+    """Adjust the lightness of a hex color.
+
+    Args:
+    ----
+        hex_color (str): The hex color code (e.g., '#RRGGBB').
+        adjustment (float): The amount by which to adjust the lightness.
+                            Positive values make the color lighter, negative values make it darker.
+                            Should be between -1 and 1.
+
+    Returns:
+    -------
+        str: The adjusted hex color code.
+
+    """
     # Remove '#' from the hex color string
     hex_color = hex_color.lstrip("#")
 

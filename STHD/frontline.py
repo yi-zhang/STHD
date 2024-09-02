@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 from STHD import model
 
+## also try: T cell spot distance to myeloid
+
 
 def get_neighbor_ct(adata, ctstr="cTNI", ctlst=[]):
     subset_cell_idx1 = np.where(adata.obs["STHD_pred_ct"].str.contains(ctstr))[
@@ -25,6 +27,9 @@ def get_neighbor_ct(adata, ctstr="cTNI", ctlst=[]):
 
 
 def get_ambiguous_near_ct(adata, ctstr="cTNI", ctlst=[]):
+    """Grep all ambiguous for an input neighbor identity. require sthdata.adata.obsp["spatial_connectivities"] from:
+    # sq.gr.spatial_neighbors(sthdata.adata, n_rings=1, coord_type="grid", n_neighs=4)
+    """
     #    sthdata = adata.copy()
     subset_cell_idx1 = np.where(adata.obs["STHD_pred_ct"].str.contains(ctstr))[
         0

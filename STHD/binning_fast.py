@@ -1,3 +1,12 @@
+"""
+patch_path = '../testdata/crop10'
+refile = '../testdata/crc_average_expr_genenorm_lambda_98ct_4618gs.txt'
+sthdata = train.load_data_with_pdata(patch_path)
+
+binadata = binning_fast.get_sthd_guided_bin_adata(sthdata, nspot= 4, use_csr = True)
+
+"""
+
 import argparse
 import os
 import sys
@@ -12,6 +21,9 @@ from STHD import train
 
 
 def get_raw_bins(adata, nspot):
+    """Binning data according to array_row, array_col.
+    The bin_id is "{bin_row}||{bin_col}"
+    """
     array_row_min, array_col_min = (
         adata.obs["array_row"].min(),
         adata.obs["array_col"].min(),
@@ -34,6 +46,9 @@ def get_raw_bins(adata, nspot):
 
 
 def get_bins(adata, nspot):
+    """Binning data according to array_row, array_col, and cell type predictions.
+    The bin_id is "{bin_row}||{bin_col}||{cell_type}"
+    """
     array_row_min, array_col_min = (
         adata.obs["array_row"].min(),
         adata.obs["array_col"].min(),
@@ -258,6 +273,22 @@ def concatenate_csr_matrices(matrix_list):
 
 
 def get_raw_bin_adata(sthdata, nspot=4, min_nspot_to_aggregate=2, use_csr=True):
+    """Bin aggregating data, guided by STHD predicted cell type identities of spots. E.g. if one bin has 2 types of spots, they will be aggregated separately, and location is determined by taking mean of x or y for the included spot barcodes
+    For full side, must use use_csr. takes 1.5hr for 8million spots -> 4x4 cell type specific binning. ~3GB result
+    []todo: barcode string reformat.
+    #full_binadata.obs['barcodes_included'] = #full_binadata.obs['barcodes_included'].str.join(sep=',')
+    full_binadata.write('../testdata/crop10/full_STHD_guided_binadata.h5ad')
+    Params
+    ----------
+    sthdata:
+        STHD class, including adata with spatial, coodinate, fullregimg
+    nspot: int
+        Number of  spots to square-bin together, along x or along y.
+    min_nspot_to_aggregate:
+        require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.
+    use_csr:
+        Whether to use csr format to save the binned adata.X object. Default to be True.
+    """
     bins = get_raw_bins(sthdata.adata, nspot)
     if use_csr:
         X_binned = bin_X_csr(sthdata.adata, bins)
@@ -295,6 +326,28 @@ def get_sthd_guided_bin_adata(
     min_nspot_to_aggregate=2,
     use_csr=True,
 ):
+    """Bin aggregating data, guided by STHD predicted cell type identities of spots. E.g. if one bin has 2 types of spots, they will be aggregated separately, and location is determined by taking mean of x or y for the included spot barcodes
+    For full side, must use use_csr. takes 1.5hr for 8million spots -> 4x4 cell type specific binning. ~3GB result
+    []todo: barcode string reformat.
+    #full_binadata.obs['barcodes_included'] = full_binadata.obs['barcodes_included'].str.join(sep=',')
+    full_binadata.write('../testdata/crop10/full_STHD_guided_binadata.h5ad')
+    Params
+    ----------
+    sthdata:
+        STHD class, including adata with spatial, coodinate, fullregimg
+    pred_col:
+        column in STHD.obs marking STHD predicted cell type
+    nspot: int
+        Number of  spots to square-bin together, along x or along y.
+    remove_ambiguous_spot:
+        Whether to remove ambiguous spots or not, based on pred_col
+    ambiguous_spot_celltypes:
+        name of ambiguous cell identify for spots, e.g. ['ambiguous']
+    min_nspot_to_aggregate:
+        require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.
+    use_csr:
+        Whether to use csr format to save the binned adata.X object. Default to be True.
+    """
     bins = get_bins(sthdata.adata, nspot)
     if use_csr:
         X_binned = bin_X_csr(sthdata.adata, bins)
@@ -349,6 +402,30 @@ def get_sthd_guided_bin_adata_v2(
     use_csr=True,
     obs_extra_col_tocollapse="",
 ):
+    """Version 2. change input from STHD to adata.
+    Bin aggregating data, guided by STHD predicted cell type identities of spots. E.g. if one bin has 2 types of spots, they will be aggregated separately, and location is determined by taking mean of x or y for the included spot barcodes
+    For full side, must use use_csr. takes 1.5hr for 8million spots -> 4x4 cell type specific binning.
+    #full_binadata.obs['barcodes_included'] = #full_binadata.obs['barcodes_included'].str.join(sep=',')
+    #full_binadata.write('../testdata/full_STHD_guided_binadata.h5ad')
+    Params
+    ----------
+    adata:
+        adata with spatial, coodinate
+    pred_col:
+        column in adata.obs marking STHD predicted cell type
+    nspot: int
+        Number of  spots to square-bin together, along x or along y.
+    remove_ambiguous_spot:
+        Whether to remove ambiguous spots or not, based on pred_col
+    ambiguous_spot_celltypes:
+        name of ambiguous cell identify for spots, e.g. ['ambiguous']
+    min_nspot_to_aggregate:
+        require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.
+    use_csr:
+        Whether to use csr format to save the binned adata.X object. Default to be True.
+    obs_columns_collapse:
+        Meanwhile collapsing numbers from these columns.
+    """
     bins = get_bins(adata, nspot)
     if use_csr:
         X_binned = bin_X_csr(adata, bins)
@@ -369,6 +446,19 @@ def get_sthd_guided_bin_adata_v2(
         obsm=obsm_binned,  # original obsm plus spatial , mean of bin barcode
         uns=adata.uns.copy(),  # original uns, image
     )
+    """
+    ###########  create spatial, take mean for each bin ########## 
+    spatial = pd.DataFrame(adata.obsm['spatial'], index=adata.obs.index, columns=['x','y'])
+    for i in obs_binned.index:
+        barcodes = obs_binned.loc[i]['barcodes_included']
+
+        a = spatial.loc[barcodes]
+        xc,yc = a.mean().values
+        obs_binned.loc[i,'x'] = xc
+        obs_binned.loc[i,'y'] = yc
+
+    binadata.obsm['spatial'] = obs_binned[['x','y']].values
+    """
     print("[Log] remove classes to be filtered out...")
     if remove_ambiguous_spot:  # Optional: remove ambiguous and filtered
         binadata = binadata[~binadata.obs[pred_col].isin(ambiguous_spot_celltypes)]
@@ -381,3 +471,76 @@ def get_sthd_guided_bin_adata_v2(
     )
     print(binadata)
     return binadata
+
+
+def main(args):
+    if os.path.isfile(args.outfile):
+        print("[Warning] file already exist. skipping binning...")
+        sys.exit(0)
+    sthdata = train.load_data_with_pdata(file_path=args.patch_path)
+    if args.mode == "STHD":
+        print("[Log] STHD guided binning...")
+        binadata_sthd = get_sthd_guided_bin_adata(
+            sthdata,
+            pred_col=args.pred_col,
+            nspot=args.nspot,
+            remove_ambiguous_spot=args.remove_ambiguous_spot,
+            ambiguous_spot_celltypes=args.ambiguous_spot_celltypes,
+            min_nspot_to_aggregate=args.min_nspot_to_aggregate,
+        )
+        print("[Log] Saving to ", args.outfile)
+        binadata_sthd.write(args.outfile)
+
+    elif args.mode == "raw":
+        print("[Log] raw binning...")
+        binrawadata = get_raw_bin_adata(sthdata, nspot=args.nspot)
+        print("[Log] Saving to ", args.outfile)
+        binrawadata.write(args.outfile)
+
+
+if __name__ == "__main__":
+    """
+    Example
+    ----------
+    python binning_fast.py --patch_path ../testdata/crop10/ --nspot 4 --outfile ../testdata/crop10_STHDbin_nspot4.h5ad
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--patch_path", type=str, help="Path of STHD result")
+    parser.add_argument(
+        "--nspot",
+        type=int,
+        default=4,
+        help="number of spots to aggregate along each side",
+    )
+    parser.add_argument(
+        "--outfile", type=str, default="../binned.h5ad", help="path to save binned h5ad"
+    )
+    parser.add_argument("--mode", type=str, default="STHD", help="STHD or raw")
+    parser.add_argument(
+        "--remove_ambiguous_spot",
+        type=bool,
+        default=True,
+        help="Whether to remove ambiguous spots or not, based on pred_col",
+    )
+    parser.add_argument(
+        "--ambiguous_spot_celltypes",
+        type=list,
+        default=["ambiguous", "filtered"],
+        help="name of ambiguous cell identify for spots",
+    )
+    parser.add_argument(
+        "--min_nspot_to_aggregate",
+        type=int,
+        default=2,
+        help="require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.",
+    )
+    parser.add_argument(
+        "--pred_col",
+        type=str,
+        default="STHD_pred_ct",
+        help="cell type column to aggregate",
+    )
+    args = parser.parse_args()
+
+    main(args)

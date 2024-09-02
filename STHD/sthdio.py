@@ -10,6 +10,32 @@ import tifffile
 
 class STHD:
     def __init__(self, spatial_path, counts_data, full_res_image_path, load_type):
+        """Load ST-HD data.
+
+        # When loading from original data source:
+        STHD(
+            spatial_path = '/hpc/group/yizhanglab/yz922/DATA/spatial/10x_HD_human_colon_cancer_20240325/square_002um/',
+            counts_data = 'filtered_feature_bc_matrix.h5',
+            full_res_image_path = '/hpc/group/yizhanglab/yz922/DATA/spatial/10x_HD_human_colon_cancer_20240325/Visium_HD_Human_Colon_Cancer_tissue_image.btf',
+            load_type = 'original'
+        )
+
+        # When loading from a preloaded data source:
+        STHD(
+            spatial_path = adata,
+            counts_data = None,
+            full_res_image_path = '/hpc/group/yizhanglab/yz922/DATA/spatial/10x_HD_human_colon_cancer_20240325/Visium_HD_Human_Colon_Cancer_tissue_image.btf',
+            load_type = 'preload'
+        )
+
+        # When loading from a cropped data source:
+        STHD(
+            spatial_path = '../analysis/20240331_hdcrop/crop1/adata.h5ad.gzip',
+            counts_data = None,
+            full_res_image_path = '../analysis/20240331_hdcrop/crop1/fullresimg_path.json',
+            load_type = 'crop'
+        )
+        """
         if load_type == "original":
             self.adata = sq.read.visium(path=spatial_path, counts_file=counts_data)
         elif load_type == "preload":
@@ -22,6 +48,31 @@ class STHD:
         self.fullresimg_path = full_res_image_path
 
     def crop(self, x1, x2, y1, y2, factor):
+        """Crop in original full res image's pixel coordinates.
+
+        (x1, y1) ... (x2, y1)
+        .                   .
+        .                   .
+        (x1, y2) ... (x2, y2)
+
+        factor: This is the scaling factor. by default we should use the scale factor for 'hires' image.
+
+        Example:
+        -------
+        x1 = 57050
+        y1 = 8600
+        d = 200
+        x2 = x1+d
+        y2 = y1+d
+        #fullresimg_subset = full_data.fullresimg[y1:y2, x1:x2,:]
+        #plt.imshow(fullresimg_subset)
+        crop_data = full_data.crop(
+            x1, x2, y1, y2,
+            full_data.adata.uns['spatial']['Visium_HD_Human_Colon_Cancer']['scalefactors']['tissue_hires_scalef']
+        )
+        crop_data.save('../analysis/20240331_hdcrop/crop4')
+
+        """
         # crop adata
         img = sq.im.ImageContainer.from_adata(
             self.adata
@@ -43,6 +94,22 @@ class STHD:
     def match_refscrna(
         self, ref, cutgene=True, gene_lambda_noise=0.000001, ref_renorm=False
     ):
+        """Use reference gene expresssiong by cell type, and load to obj, adding a small noise.
+        Params
+        ----------
+        ref: pd.DataFrame
+            averaged gene expr from single cell reference, gene by celltype.
+
+        Example:
+        -------
+        sec1_sthdata.adata.match_scrna_ref(genemeanpd_filtered)
+
+        To get training dimensions:
+        X = sec1_sthdata.adata.obs.shape[0] # n of spot
+        Y = sec1_sthdata.adata.shape[1] # n of gene (filtered )
+        Z = sec1_sthdata.lambda_cell_type_by_gene_matrix.shape[0]  # n of cell type
+
+        """
         adata = self.adata
         adata.var_names_make_unique()
         overlap_gs = adata.var.index.intersection(ref.index)
@@ -75,6 +142,20 @@ class STHD:
         return img
 
     def crop_img(self, img, x1, y1, x2, y2):
+        """x1 = 45450
+        y1 = 4100
+        d = 1100
+        x2 = x1+d
+        y2 = y1+d
+
+        full_img = sthdata.load_img()
+        adatacrop = sthdata.crop( x1, x2, y1, y2, factor = sthdata.adata.uns['spatial']['Visium_HD_Human_Colon_Cancer']['scalefactors']['tissue_hires_scalef'])
+        x1c,x2c,y1c,y2c = adatacrop.get_sequencing_data_region()
+
+        import matplotlib.pyplot as plt
+        img_cropped = sthdata.crop_img(full_img,x1c,x2c,y1c,y2c)
+        plt.imshow(img_cropped)
+        """
         img_cropped = img[y1:y2, x1:x2, :]
         return img_cropped
 

@@ -12,6 +12,26 @@ def simulate_spot_bin_2cell(
     center2=(9, 9),
     radius2=4,
 ):
+    """Simulator: input size in number of spot; define cell center and radius, output simulated spatial locations for 2 true cells, and bin boundary.
+
+    Return:
+    ------
+    x,y. location of spot on x or y
+    x_grid, y_grid. grid location of spot on x and y
+    binxs, binys. bin boundary of 4 by 4 spot
+    mask1, mask2. mask of cell1 and cell2 in x_grid and y_grid.
+
+    Example:
+    -------
+    x,y,x_grid, y_grid, binxs, binys, mask1, mask2 = simulate_spot_bin_2cell(
+        side_length = 15, num_points = 16,
+        center1 = (4.5, 4.5) ,
+        radius1 = 3,
+        center2 = (9, 8) ,
+        radius2 =4,
+        )
+
+    """
     ########## 2um spots ##########
     # Define the size of the square region
     # side_length = 15
@@ -82,6 +102,20 @@ def simulate_spot_expr_2cell(
     lam_geneC=4,
     lam_noise=0.001,
 ):
+    """Example:
+    -------
+    adata = simulate_spot_expr_2cell(
+        x_grid, y_grid, mask1, mask2,
+        lam_ct1geneA=10,
+        lam_ct1geneB=0,
+        lam_ct2geneA=0.01,
+        lam_ct2geneB=4,
+        lam_noise=0.001,
+        )
+
+    """
+    # create expression of spots for 2 cells of 2 cell types, marked by 2 marker genes.
+
     ## create an empty expr adata
     total_spot_num = x_grid.shape[0] * x_grid.shape[1]
     spotid_lst = [t for t in range(total_spot_num)]

@@ -2,6 +2,49 @@ import numpy as np
 import squidpy as sq
 from numba import njit, prange
 
+"""library to train STHD model. Example codes:
+import pandas as pd
+import matplotlib.pyplot as plt
+import squidpy as sq
+import sys
+sys.path.append('../STHD')
+import model
+import refscrna
+import sthdio
+
+# load data
+file_path = '../testdata/crop10'
+sthd_data = sthdio.STHD(
+            spatial_path = f'{file_path}/adata.h5ad',
+            counts_data = None, 
+            full_res_img = f'{file_path}/fullresimg.npy', 
+            full_res_img_coor = f'{file_path}/coor.json', 
+            load_type = 'crop'
+        )
+print('Number of spots: ', sthd_data.adata.shape[0])
+refile = '../testdata/crc_average_expr_genenorm_lambda_98ct_4618gs.txt'
+genemeanpd_filtered = refscrna.load_scrna_ref(refile)
+sthd_data.match_refscrna(genemeanpd_filtered, cutgene=True)
+
+# prepare_constants and training weights
+X, Y, Z, F, Acsr_row, Acsr_col = model.prepare_constants(sthd_data)
+W, eW, P, Phi, ll_wat, ce_wat, m, v = model.prepare_training_weights(X,Y,Z)
+
+# train
+metrics = model.train(
+    n_iter = 20, 
+    step_size = 1, # learnin rate
+    beta = 0.1,  # weight of CE w.r.t log-likelihood
+    constants = (X, Y, Z, F, Acsr_row, Acsr_col), 
+    weights = (W, eW, P, Phi, ll_wat, ce_wat, m, v)
+)
+
+# visualize results
+color_list1 = ['STHD_pred_ct', 'p_ct_cP2 (Plasma IgG)', 'p_ct_cP3 (Plasma IgG prolif)']
+color_list2 = ['p_ct_Tumor cE05 (Enterocyte 2)', 'p_ct_cS04 (Endo)', 'p_ct_Tumor cE11 (Enteroendocrine)']
+model.analysis(sthd_data, P, genemeanpd_filtered, color_list1, color_list2, mapcut = 0.8)
+"""
+
 
 @njit(parallel=True, fastmath=True)
 def fill_F(X, Y, Z, N, Lambda, D, F):
@@ -113,7 +156,7 @@ def train(
         update_ll_wat(ll_wat, P, F, X, Y, Z)
         update_ce_wat(ce_wat, P, Acsr_row, Acsr_col, X, Y, Z)
         update_m_v(m, v, beta1, beta2, beta, ll_wat, ce_wat, X, Y, Z)
-        update_W2(W, m, v, beta1, beta2, i + 1, step_size, epsilon, X, Y, Z)
+        update_W_adam(W, m, v, beta1, beta2, i + 1, step_size, epsilon, X, Y, Z)
         ll = calculate_ll(P, F, X, Y, Z)
         ce = calculate_ce(P, Acsr_row, Acsr_col, X, Y, Z)
         metrics.append((ll, ce))
@@ -124,6 +167,8 @@ def train(
 
     return metrics
 
+
+# ----------------------- update trainable parameters -------------------
 @njit(parallel=True, fastmath=True)
 def update_eW(eW, W, X, Y, Z):
     # inplace update eW using W
@@ -148,6 +193,8 @@ def update_P(P, eW, Phi, X, Y, Z):
         for t in range(Z):
             P[a, t] = eW[a, t] / Phi[a]
 
+
+# ----------------------- calculate losses -------------------
 @njit
 def csr_obtain_column_index_for_row(row, column, i):
     # get row i's non-zero items' column index
@@ -199,6 +246,7 @@ def calculate_ll(P, F, X, Y, Z):
     return res
 
 
+# ----------------------- calculate gradients -------------------
 @njit(parallel=True, fastmath=True)
 def update_ll_wat(ll_wat, P, F, X, Y, Z):
     for a_tilda in prange(X):
@@ -228,12 +276,18 @@ def update_ce_wat(ce_wat, P, Acsr_row, Acsr_col, X, Y, Z):
                 comp2 = comp2 + P[a_star, t_tilda] - P[a_tilda, t_tilda]
             ce_wat[a_tilda, t_tilda] = (-P[a_tilda, t_tilda] * comp1 - comp2) / X
 
+
+# ----------------------- (DEPRECATED! USE ADAM!) Optimizer: gradient descent -------------------
 @njit(parallel=True, fastmath=True)
-def update_W1(W, ll_wat, ce_wat, alpha, beta, X, Y, Z):
+def update_W_gd(W, ll_wat, ce_wat, alpha, beta, X, Y, Z):
     for a in prange(X):
         for t in range(Z):
             W[a, t] = W[a, t] - alpha * (-ll_wat[a, t] + beta * ce_wat[a, t])
 
+
+# ----------------------- Optimizer: ADAM -------------------
+# following implementation in https://pytorch.org/docs/stable/generated/torch.optim.Adam.html
+# paper: https://arxiv.org/pdf/1412.6980.pdf
 @njit(parallel=True, fastmath=True)
 def update_m_v(m, v, beta1, beta2, beta, ll_wat, ce_wat, X, Y, Z):
     for a in prange(X):
@@ -244,7 +298,7 @@ def update_m_v(m, v, beta1, beta2, beta, ll_wat, ce_wat, X, Y, Z):
 
 
 @njit(parallel=True, fastmath=True)
-def update_W2(W, m, v, beta1, beta2, i, alpha, epsilon, X, Y, Z):
+def update_W_adam(W, m, v, beta1, beta2, i, alpha, epsilon, X, Y, Z):
     for a in prange(X):
         for t in range(Z):
             m_correct = m[a, t] / (1 - beta1**i)

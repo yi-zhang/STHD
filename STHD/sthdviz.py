@@ -1,3 +1,11 @@
+"""Plot Results as Interactive HTML via The STHD Visualization Module.
+
+Usage:
+python3 sthdviz.py \
+    --patch_path ../analysis/full_patchify \
+    --title full_patchify
+"""
+
 import argparse
 
 import numpy as np
@@ -24,6 +32,12 @@ from STHD import color_palette, train
 
 
 def rasterize(df, val_col):
+    """Rasterize the input dataframe with categorical values
+    df: input dataframe to rasterize
+        array_row: index for row
+        array_col: index for col
+        {val_col}: the cell value (usually it is cell type prediction label)
+    """
     df = df.dropna()
     row_min, row_max = df["array_row"].min(), df["array_row"].max()
     col_min, col_max = df["array_col"].min(), df["array_col"].max()
@@ -46,6 +60,12 @@ def rasterize(df, val_col):
 
 
 def rasterize_numerical(df, val_col):
+    """Rasterize the input dataframe with numerical values
+    df: input dataframe to rasterize
+        array_row: index for row
+        array_col: index for col
+        {val_col}: the cell value (usually it is cell type prediction label)
+    """
     df = df.dropna()
     row_min, row_max = df["array_row"].min(), df["array_row"].max()
     col_min, col_max = df["array_col"].min(), df["array_col"].max()
@@ -312,3 +332,15 @@ def fast_plot_numerical(
     p.y_range.flipped = False
 
     show(p)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--patch_path", type=str, required=True)
+    parser.add_argument("--title", default="sthd_pred_cell_type", type=str)
+    args = parser.parse_args()
+
+    sthdata = train.load_data_with_pdata(args.patch_path)
+    df = sthdata.adata.obs[["array_row", "array_col", "STHD_pred_ct"]]
+    df_rasterize = rasterize(df, "STHD_pred_ct")
+    fast_plot(df_rasterize, title=args.title, save_root_dir=args.patch_path)

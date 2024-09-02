@@ -1,9 +1,21 @@
+## apply binning on spot level data, following current standards, for comparison.
+
 import anndata
 import pandas as pd
 import scanpy as sc
 
 
 def cluster_raw_spots(sthdata, resolution=0.5):
+    """Example:
+    -------
+    adata_spot = binning.cluster_raw_spots(sthdata, resolution = 0.2)
+    fig = sq.pl.spatial_scatter(adata_spot,
+                          color='leiden',
+                          crop_coord = [(x1,y1,x2,y2)], # those are original full res image's pixel coordinates
+                          title='leiden_'+str(resolution)
+                         )
+
+    """
     adata_spot = sthdata.adata.copy()
     sc.pp.normalize_total(adata_spot, target_sum=10e4)  # seurat style
     sc.pp.log1p(adata_spot)
@@ -15,6 +27,13 @@ def cluster_raw_spots(sthdata, resolution=0.5):
 
 
 def get_bin_adata(sthdata, nspot=4):
+    """Simple binning
+
+    Example:
+    -------
+    binadata = get_bin_adata(sthdata, nspot=4) # e.g. 2umx2um into 8umx8um
+
+    """
     adata = sthdata.adata.copy()
     # whether each row index is multiplicate of 4 (plus min), and aggregate based on the two number as index
     # nspot= 4 # 8um=4*2um
@@ -82,6 +101,14 @@ def get_bin_adata(sthdata, nspot=4):
     # get counts
     binadata.obs["n_counts"] = binadata.X.sum(axis=1)
     print(binadata)
+
+    """
+    # array_row_col_2_barcode_pd.index.names = ['array_row_step4', 'array_col_step4']
+    # original location does not exist 1878,2200
+    # sthdata.adata.obs[(sthdata.adata.obs['array_row_int']==1878) & (sthdata.adata.obs['array_col_int']==2200)]
+    # so if getting the barcode name, no one
+    # bindatadf.merge(array_row_col_2_barcode_pd, how='left',left_index=True, right_index=True)
+    """
     return binadata
 
 
@@ -93,6 +120,22 @@ def get_sthd_guided_bin_adata_v1(
     ambiguous_spot_celltypes=["ambiguous"],
     min_nspot_to_aggregate=2,
 ):
+    """Bin aggregating data, guided by STHD predicted cell type identities of spots. E.g. if one bin has 2 types of spots, they will be aggregated separately, and location is determined by taking mean of x or y for the included spot barcodes
+    Params
+    ----------
+    sthdata:
+        STHD class, including adata with spatial, coodinate, fullregimg
+    pred_col:
+        column in STHD.obs marking STHD predicted cell type
+    nspot: int
+        Number of  spots to square-bin together, along x or along y.
+    remove_ambiguous_spot:
+        Whether to remove ambiguous spots or not, based on pred_col
+    ambiguous_spot_celltypes:
+        name of ambiguous cell identify for spots, e.g. ['ambiguous']
+    min_nspot_to_aggregate:
+        require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.
+    """
     adata = sthdata.adata.copy()
     array_row_min, array_col_min = (
         adata.obs["array_row"].min().astype(int),
@@ -193,6 +236,19 @@ def remove_celltype_sthd_guided_bin_adata(
 
 
 def cluster_bin_data(binadata, resolution=1):
+    """# cluster bined data
+
+    Example:
+    -------
+    adata_bin, fig = cluster_bin_data(binadata, coord, resolution=1)
+    sc.pl.umap( binadata,        color="leiden")
+    fig = sq.pl.spatial_scatter(binadata,
+                          color='leiden',
+                          crop_coord = coord,
+                          title='leiden_'+str(resolution)
+                         )
+
+    """
     if ("counts") not in binadata.layers.keys():
         print('[Log] Copying raw counts to adata.layers["counts"]')
         binadata.layers["counts"] = binadata.X.copy()

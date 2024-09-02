@@ -1,3 +1,4 @@
+## low neighbor count detection to mask some spots with local continuous low count in neighbors.
 import matplotlib.pyplot as plt
 import numpy as np
 import squidpy as sq
@@ -7,6 +8,23 @@ from numba import njit
 def background_detector(
     adata, layer=None, threshold=50, n_neighs=4, n_rings=4, coord_type="grid"
 ):
+    """Compute neighbor using spatial, default n_neighs =4, n_rings=2
+    Add columns in adata.obs: 'neighbor_agg_counts', 'neighbor_agg_log_counts', 'low_count_region'
+    Params
+    ----------
+    adata: scanpy obj with spatial coords
+    threshold
+        low count filter thresold. e.g. 50 cutoff for aggregated neighbor counts
+    layer
+        layer in adata used for neighbor counter filtering. should be the layer with raw counts. e.g. layer='count', defaul: adata.X
+    n_rings = 2
+        # number of rings to check on neighbors
+    n_neighs
+        For square shape, n_neighs=4. and coord_type = 'grid'
+    coord_type
+        For square shape, n_neighs=4. and coord_type = 'grid'
+
+    """
     if layer == "count":
         adataX = adata.layers["count"]
     else:
@@ -77,6 +95,26 @@ def filter_background(
     low_cts_col="low_count_region",
     inplace=False,
 ):
+    """Filter out low neighbor count barcodes, and return filtered sthd
+    Params
+    ----------
+    sthdata
+        STHD obj
+    threshold
+        low count filter thresold. e.g. 100 cutoff for aggregated neighbor counts
+    n_rings = 2
+        # number of rings to check on neighbors
+    n_neighs
+        For square shape, n_neighs=4. and coord_type = 'grid'
+    coord_type
+        For square shape, n_neighs=4. and coord_type = 'grid'
+    low_cts_col
+        column to record whether a barcode is in low count
+    #neighbor_cts_col
+    #    column to record neighbor count aggregated
+    inplace
+        default False, assign True to save memory for full slide data
+    """
     if inplace:
         sthdata_filtered = sthdata
     else:

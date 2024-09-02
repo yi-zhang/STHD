@@ -1,7 +1,23 @@
+"""Function for region of interest analysis"""
+
 import pandas as pd
 
 
 def barcode_convert(sthdata, nspot=4, switch_index=False):
+    """Convert barcodes from 2um bin to 8um bin, add to .adata.obs
+
+    Args:
+    ----
+    sthdata: Data object containing 'adata'.
+    nspot: number of spots to bin together.
+    switch_index: whether to set index to converted barcodes.
+
+    Returns:
+    -------
+    Modified 'sthdata' in place by updating the 8um barcodes as index.
+    add the old 2um barcodes into the sthdata.adata.obs['barcodes_2um']
+
+    """
     # process row and column num for 8um bins
     # sthdata = sthd_data.copy()
     array_row_8um = (

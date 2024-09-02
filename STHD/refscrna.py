@@ -1,7 +1,12 @@
+# load reference scRNA.
+# see s00_crc_singlecellreference.ipynb
 import pandas as pd
 
 
 def load_scrna_ref(refile):
+    """
+    # refile = '../testdata/crc_average_expr_genenorm_lambda_98ct_4618gs.txt'
+    """
     genemeanpd_filtered = pd.read_table(refile, index_col=0)
     return genemeanpd_filtered
 
