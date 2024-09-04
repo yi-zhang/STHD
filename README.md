@@ -13,7 +13,7 @@
 
 - Author: Yi Zhang, PhD, yi.zhang@duke.edu
 - Website: [Yi Zhang Lab at Duke](https://yi-zhang-compbio-lab.github.io)
-- STHDviewer of VisiumHD colon cancer sample with near 9 million spots: [STHDviewer_colon_cancer_HD](https://yi-zhang-compbio-lab.github.io/STHDviewer_colon_cancer_hd)
+- STHDviewer of VisiumHD colon cancer sample with near 9 million spots: STHDviewer_colon_cancer_HD:[https://yi-zhang-compbio-lab.github.io/STHDviewer_colon_cancer_hd](https://yi-zhang-compbio-lab.github.io/STHDviewer_colon_cancer_hd/STHDviewer_crchd.html)
 - We provided [test data](https://duke.box.com/v/yi-zhang-duke-sthd-test). Download this folder and put as `./testdata/`
 
 ## Install
