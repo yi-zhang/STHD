@@ -13,7 +13,7 @@ authors = [
 ]
 description = "STHD: probabilistic cell typing of single Spots in whole Transcriptome spatial data with High Definition"
 readme = "README.md"
-requires-python = ">=3.8.3"
+requires-python = ">=3.8.0"
 license = {file = "LICENSE"}
 keywords = [
     "spatial transcriptomics", 

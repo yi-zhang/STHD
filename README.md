@@ -18,15 +18,17 @@
 
 ## Install
 ---
-- python version requirement: >=3.8.3
+- python version requirement: >=3.8.0
 - How to use
   - create new python venv `python3.8 -m venv sthd_env`
   - activate the venv `source sthd_env/bin/activate`
-  - download repo: `git clone git@github.com:yi-zhang/STHD.git`
-  - install dependencies: `pip install -r STHD/requirements.txt`
-  - making sure `./STHD` is in python path, e.g adding via `sys.path.append('./STHD')`
-  - then in script: `from STHD import {the module you need}`
-- pip package coming soon
+  - Install STHD from pip: `pip install STHD`
+  - Or:
+      - download repo: `git clone git@github.com:yi-zhang/STHD.git`
+      - install dependencies: `pip install -r STHD/requirements.txt`
+      - making sure `./STHD` is in python path, e.g adding via `sys.path.append('./STHD')`
+      - then in script: `from STHD import {the module you need}`
+
 
 ## STHD Quickstart using a colon cancer VisiumHD patch:
 
@@ -128,4 +130,8 @@ python -m STHD.binning_fast --patch_path ./testdata/crop10/ --nspot 4 --outfile 
 
 ## Dependencies
 
-please check requirements.txt
+requirements.txt
+
+## Reference
+
+Sun C*, Yi Zhang*#. "STHD: probabilistic cell typing of single Spots in whole Transcriptome spatial data with High Definition". (2024) bioRxiv 2024.06.20.599803. [Preprint link](https://www.biorxiv.org/content/10.1101/2024.06.20.599803v1)
