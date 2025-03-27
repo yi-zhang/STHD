@@ -1,4 +1,4 @@
-## low neighbor count detection to mask some spots with local continuous low count in neighbors.
+# low neighbor count detection to mask some spots with local continuous low count in neighbors.
 import matplotlib.pyplot as plt
 import numpy as np
 import squidpy as sq
@@ -6,7 +6,7 @@ from numba import njit
 
 
 def background_detector(
-    adata, layer=None, threshold=50, n_neighs=4, n_rings=4, coord_type="grid"
+    adata, layer=None, threshold=50, n_neighs=4, n_rings=4, coord_type='grid'
 ):
     """Compute neighbor using spatial, default n_neighs =4, n_rings=2
     Add columns in adata.obs: 'neighbor_agg_counts', 'neighbor_agg_log_counts', 'low_count_region'
@@ -25,8 +25,8 @@ def background_detector(
         For square shape, n_neighs=4. and coord_type = 'grid'
 
     """
-    if layer == "count":
-        adataX = adata.layers["count"]
+    if layer == 'count':
+        adataX = adata.layers['count']
     else:
         adataX = adata.X
     X = adata.obs.shape[0]  # n of spot
@@ -37,19 +37,19 @@ def background_detector(
     p_background = D_raw.copy()
     sq.gr.spatial_neighbors(
         adata,
-        spatial_key="spatial",
+        spatial_key='spatial',
         coord_type=coord_type,
         n_neighs=n_neighs,
         n_rings=n_rings,
     )
-    A_csr = adata.obsp["spatial_distances"]  # [X, X]
+    A_csr = adata.obsp['spatial_distances']  # [X, X]
     Acsr_row = A_csr.indptr
     Acsr_col = A_csr.indices
     Acsr_val = A_csr.data
     aggregate_neighbor(D_raw, p_background, Acsr_row, Acsr_col, Acsr_val, X)
-    adata.obs["neighbor_agg_counts"] = p_background
-    adata.obs["neighbor_agg_log_counts"] = np.log(p_background + 1)
-    adata.obs["low_count_region"] = (p_background < threshold).astype(int)
+    adata.obs['neighbor_agg_counts'] = p_background
+    adata.obs['neighbor_agg_log_counts'] = np.log(p_background + 1)
+    adata.obs['low_count_region'] = (p_background < threshold).astype(int)
     return adata
 
 
@@ -58,15 +58,15 @@ def visualize_background(sthdata):
     f, ax = plt.subplots(2, 2, figsize=(15, 15))
     # histogram
     _ = ax[0, 0].hist(
-        sthdata.adata.obs["neighbor_agg_counts"],
+        sthdata.adata.obs['neighbor_agg_counts'],
         bins=500,
     )
     ax[0, 0].set_xlim([-10, 300])
-    ax[0, 0].set_title("aggregated neighbor coutns")
+    ax[0, 0].set_title('aggregated neighbor coutns')
     # neighbor agg log counts
     sq.pl.spatial_scatter(
         sthdata.adata,
-        color=["neighbor_agg_log_counts"],
+        color=['neighbor_agg_log_counts'],
         crop_coord=[(x1, y1, x2, y2)],
         # shape='square',
         legend_fontsize=6,
@@ -79,7 +79,7 @@ def visualize_background(sthdata):
     # islowcount
     sq.pl.spatial_scatter(
         sthdata.adata,
-        color=["low_count_region"],
+        color=['low_count_region'],
         crop_coord=[(x1, y1, x2, y2)],
         legend_fontsize=6,
         ax=ax[1, 1],
@@ -91,8 +91,8 @@ def filter_background(
     threshold=50,
     n_neighs=4,
     n_rings=4,
-    coord_type="grid",
-    low_cts_col="low_count_region",
+    coord_type='grid',
+    low_cts_col='low_count_region',
     inplace=False,
 ):
     """Filter out low neighbor count barcodes, and return filtered sthd
@@ -131,7 +131,7 @@ def filter_background(
         sthdata_filtered.adata.obs[low_cts_col] < 1
     ]
     after = sthdata_filtered.adata.shape[0]
-    print(f"[Log] filtering background: {before} spots to {after} spots")
+    print(f'[Log] filtering background: {before} spots to {after} spots')
     return sthdata_filtered
 
 
@@ -148,7 +148,8 @@ def csr_obtain_column_val_for_row(row, column, val, i):
 @njit
 def aggregate_neighbor(D_raw, p_background, row, column, val, X):
     for a in range(X):
-        neighbors, distances = csr_obtain_column_val_for_row(row, column, val, a)
+        neighbors, distances = csr_obtain_column_val_for_row(
+            row, column, val, a)
         for i in range(len(neighbors)):
             neighbor = neighbors[i]
             distance = distances[i]

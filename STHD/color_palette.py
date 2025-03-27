@@ -18,11 +18,11 @@ def _construct_color(hue_list, saturation, lightness, color_format):
     res = []
     for hue in hue_list:
         r, g, b = colorsys.hls_to_rgb(hue, saturation, lightness)
-        if color_format == "hex":
-            color_code = "#{:02x}{:02x}{:02x}".format(
+        if color_format == 'hex':
+            color_code = '#{:02x}{:02x}{:02x}'.format(
                 int(r * 255), int(g * 255), int(b * 255)
             )
-        elif color_format == "rgb":
+        elif color_format == 'rgb':
             color_code = (r, g, b)
         res.append(color_code)
     return res
@@ -34,7 +34,7 @@ def _generate_color_palette(
     saturation,
     lightness,
     hue_shift=0,
-    color_format="rgb",  # either 'rgb' or 'hex'
+    color_format='rgb',  # either 'rgb' or 'hex'
 ):
     hues = _divide_hue(hue_range, len(names), hue_shift)
     colors = _construct_color(hues, saturation, lightness, color_format)
@@ -45,14 +45,14 @@ def _generate_color_palette(
 
 def get_color_map_1(genemeanpd_filtered):
     # define colormap
-    names = ["p_ct_" + i for i in list(genemeanpd_filtered.columns)]
+    names = [f'p_ct_{i}' for i in list(genemeanpd_filtered.columns)]
     tumor_colors = _generate_color_palette(
         names=names[:11],
         hue_range=[0, 0.2],
         saturation=0.8,
         lightness=1,
         hue_shift=0,
-        color_format="hex",
+        color_format='hex',
     )
     normal_colors = _generate_color_palette(
         names=names[11:],
@@ -60,14 +60,14 @@ def get_color_map_1(genemeanpd_filtered):
         saturation=0.7,
         lightness=0.7,
         hue_shift=0,
-        color_format="hex",
+        color_format='hex',
     )
     cmap = {**tumor_colors, **normal_colors}
-    cmap["ambiguous"] = [0.65] * 3
+    cmap['ambiguous'] = [0.65] * 3
     return cmap
 
 
-def prepare_palette(cmap, adata, ctcol="STHD_pred_ct"):
+def prepare_palette(cmap, adata, ctcol='STHD_pred_ct'):
     data_cmap = []
     for p in sorted(list(set(adata.obs[ctcol]))):
         cur_color = cmap[p]
@@ -76,16 +76,16 @@ def prepare_palette(cmap, adata, ctcol="STHD_pred_ct"):
     return palette
 
 
-def get_config_colormap(name="colormap_coloncatlas_98"):
+def get_config_colormap(name='colormap_coloncatlas_98'):
     cmap = None
 
-    if name == "colormap_coloncatlas_98":
+    if name == 'colormap_coloncatlas_98':
         cmap = config.colormap_coloncatlas_98
-    elif name == "colormap_coloncatlas_98_light":
+    elif name == 'colormap_coloncatlas_98_light':
         cmap = config.colormap_coloncatlas_98_light
-    elif name == "colormap_coloncatlas_98_dark":
+    elif name == 'colormap_coloncatlas_98_dark':
         cmap = config.colormap_coloncatlas_98_dark
-    elif name == "colormap_crc98_ct_group":
+    elif name == 'colormap_crc98_ct_group':
         cmap = config.colormap_crc98_ct_group
     return cmap
 
@@ -106,7 +106,7 @@ def adjust_lightness(hex_color, adjustment):
 
     """
     # Remove '#' from the hex color string
-    hex_color = hex_color.lstrip("#")
+    hex_color = hex_color.lstrip('#')
 
     # Convert the hex color to RGB values
     red = int(hex_color[0:2], 16)
@@ -119,6 +119,6 @@ def adjust_lightness(hex_color, adjustment):
     blue = min(255, max(0, int(blue + (255 - blue) * adjustment)))
 
     # Convert the adjusted RGB values back to hex
-    adjusted_hex_color = "#{0:02x}{1:02x}{2:02x}".format(red, green, blue)
+    adjusted_hex_color = f'#{red:02x}{green:02x}{blue:02x}'
 
     return adjusted_hex_color

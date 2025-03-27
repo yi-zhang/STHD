@@ -36,11 +36,17 @@ import argparse
 import os
 import pathlib
 from collections import defaultdict
+import subprocess
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from STHD import sthdio, train
+import logging
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def _load_into_dict(res_dict, file, columns):
@@ -48,9 +54,9 @@ def _load_into_dict(res_dict, file, columns):
     indices = data.index.tolist()
     cur_columns = data.columns.tolist()
     if columns != cur_columns:
-        raise ValueError("Patches have mismatched column names")
-    if columns[:3] != ["x", "y", "STHD_pred_ct"]:
-        raise ValueError("Patch column orders are not correct")
+        raise ValueError('Patches have mismatched column names')
+    if columns[:3] != ['x', 'y', 'STHD_pred_ct']:
+        raise ValueError('Patch column orders are not correct')
     values = data.values
 
     for i, barcode in enumerate(indices):
@@ -68,7 +74,7 @@ def _process_barcode(res_dict, columns):
            1. ignore filtered rows
            2. for remaining rows, average probabilities
     """
-    id_STHD_pred_ct = columns.index("STHD_pred_ct")
+    id_STHD_pred_ct = columns.index('STHD_pred_ct')
 
     for barcode in tqdm(res_dict):
         data = np.array(res_dict[barcode])
@@ -88,42 +94,77 @@ def _combine_patch(patch_dir):
     res_dict = defaultdict(list)
     columns = train.load_pdata(files[0]).columns.tolist()
 
-    print("[log] Loading patches")
+    print('[log] Loading patches')
     for file in tqdm(files):
         _load_into_dict(res_dict, file, columns)
 
-    print("[log] Process probabilities in each barcodes")
+    print('[log] Process probabilities in each barcodes')
     _process_barcode(res_dict, columns)
 
-    print("[log] Reshape data into pandas dataframe")
+    print('[log] Reshape data into pandas dataframe')
     columns_remove_prediction = columns.copy()
-    columns_remove_prediction.remove("STHD_pred_ct")
+    columns_remove_prediction.remove('STHD_pred_ct')
     pdata = pd.DataFrame.from_dict(
-        res_dict, orient="index", columns=columns_remove_prediction
+        res_dict, orient='index', columns=columns_remove_prediction
     )
 
     return pdata
 
 
 def _patchify(x1, y1, x2, y2, w, h, dw=10, dh=10):
-    # (x1, y1, x2, y2): coordinate of the region to patchify
-    # w: width of each path. x1, x2 is in width direction.
-    # h: height of each path. y1, y2 is in height direction.
-    # dw: overlap pixels in width direction
-    # dh: overlap pixels in height direction
-    print("Caution!! Patchify should be ran on non-cropped data only!")
+    """
+    Function to patchify
+
+    Args:
+        (x1, y1, x2, y2): coordinate of the region to patchify
+        w: width of each path. x1, x2 is in width direction.
+        h: height of each path. y1, y2 is in height direction.
+        dw: overlap pixels in width direction
+        dh: overlap pixels in height direction
+
+    Returns:
+        list of patches
+    """
+
+    logger.warning(
+        'Caution!! Patchify should be ran on non-cropped data only!')
     xs = list(range(x1, x2, w)) + [x2]
     ys = list(range(y1, y2, h)) + [y2]
     patches = []
     for i in range(len(xs) - 1):
         for j in range(len(ys) - 1):
-            patches.append([xs[i] - dw, ys[j] - dh, xs[i + 1] + dw, ys[j + 1] + dh])
+            try:
+                patches.append(
+                    [xs[i] - dw, ys[j] - dh, xs[i + 1] + dw, ys[j + 1] + dh])
+            except:
+                logger.error(
+                    f'Error in patchify: {xs[i] - dw}, {ys[j] - dh}, {xs[i + 1] + dw}, {ys[j + 1] + dh}')
+
+    logger.info(f'Number of patches: {len(patches)}')
+    if len(patches) == 0:
+        logger.warning('No patch is generated')
+
     return patches
 
 
 def patchify(sthd_data, save_path, x1, y1, x2, y2, dx, dy, scale_factor):
-    allregion_path = f"{save_path}/all_region"
-    patch_path = f"{save_path}/patches"
+    """
+    This function will patchify a region and save the patches.
+    The region will be cropped to (x1, y1, x2, y2).
+
+    Args:
+        sthd_data: sthdio.STHD object
+        save_path: path to save the patchified data
+        x1, y1, x2, y2: coordinate of the region to patchify
+        dx, dy: width and height of each patch
+        scale_factor: scale factor
+
+    Returns:
+        None
+
+    """
+    allregion_path = f'{save_path}/all_region'
+    patch_path = f'{save_path}/patches'
 
     pathlib.Path(allregion_path).mkdir(parents=True, exist_ok=True)
     pathlib.Path(patch_path).mkdir(parents=True, exist_ok=True)
@@ -138,7 +179,7 @@ def patchify(sthd_data, save_path, x1, y1, x2, y2, dx, dy, scale_factor):
     all_region.save(allregion_path)
 
     patches = _patchify(x1, y1, x2, y2, dx, dy)
-    # cautious! The patch must contains sequensing data, otherwise it will return error.
+    # cautious! The patch must contains sequencing data, otherwise it will return error.
     for patch in patches:
         x1_patch, y1_patch, x2_patch, y2_patch = patch
         crop_data = sthd_data.crop(
@@ -148,12 +189,22 @@ def patchify(sthd_data, save_path, x1, y1, x2, y2, dx, dy, scale_factor):
             y2_patch,
             scale_factor,
         )
-        crop_data.save(f"{patch_path}/{x1_patch}_{y1_patch}")
+        crop_data.save(f'{patch_path}/{x1_patch}_{y1_patch}')
 
 
 def merge(save_path, refile):
-    allregion_path = f"{save_path}/all_region"
-    patch_path = f"{save_path}/patches"
+    """
+    Function to merge patchified data
+
+    Args:
+        save_path: path to save the patchified data
+        refile: path to reference file
+
+    Returns:
+        None
+    """
+    allregion_path = f'{save_path}/all_region'
+    patch_path = f'{save_path}/patches'
 
     # load sthd_data that were patchified
     sthdata = train.load_data(allregion_path)
@@ -165,24 +216,29 @@ def merge(save_path, refile):
     # Align the pdata's barcode order to sthdata
     align_sthdata_pdata = train.add_pdata(sthdata, pdata)
     pdata_reorder = align_sthdata_pdata.adata.obs[
-        [t for t in align_sthdata_pdata.adata.obs.columns if "p_ct_" in t]
+        [t for t in align_sthdata_pdata.adata.obs.columns if 'p_ct_' in t]
     ]
     if [
-        "p_ct_" + i for i in genemeanpd_filtered.columns.tolist()
+        f'p_ct_{i}' for i in genemeanpd_filtered.columns.tolist()
     ] != pdata_reorder.columns.tolist():
-        raise ValueError("Cell type order miss aligned")
+        raise ValueError('Cell type order miss aligned')
 
     # Predict cell types and save results
     sthdata_with_pdata = train.predict(
         sthdata, pdata_reorder.values, genemeanpd_filtered, mapcut=0.8
     )
-    _ = train.save_prediction_pdata(sthdata_with_pdata, file_path=allregion_path)
+    _ = train.save_prediction_pdata(
+        sthdata_with_pdata, file_path=allregion_path)
 
 
 def main(args):
-    if args.mode == "combine":
-        merge(args.save_path, args.refile)
-    elif args.mode == "split":
+    if args.mode == 'combine':
+        try:
+            merge(args.save_path, args.refile)
+        except:
+            logger.error(f'Error in merge: {args.save_path}, {args.refile}')
+
+    elif args.mode == 'split':
         # load data
         full_data = sthdio.STHD(
             spatial_path=args.spatial_path,
@@ -212,28 +268,32 @@ def main(args):
         )
 
         # generate command for training through patches
-        patch_dir = os.path.join(args.save_path, "patches")
+        patch_dir = os.path.join(args.save_path, 'patches')
         files = [os.path.join(patch_dir, f) for f in os.listdir(patch_dir)]
         cmd = f"""python3 -m STHD.train --refile {args.refile} --patch_list {" ".join(files)}"""
-        print("")
-        print("Please copy and run the following command to train through patches:")
-        print(cmd)
-    else:
-        raise ValueError("Unexpected args.mode")
+        logger.info(f'Starting training on patches...\n{cmd}')
+        try:
+            subprocess.run(cmd, check=True)
+            logger.info('Training completed successfully.')
+        except subprocess.CalledProcessError as e:
+            logger.error(f'Training failed with exit code {e.returncode}.')
+            raise
+        else:
+            raise ValueError(f'Unexpected Mode: {args.mode}')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--spatial_path", type=str)
-    parser.add_argument("--counts_data", default="", type=str)
-    parser.add_argument("--full_res_image_path", type=str)
-    parser.add_argument("--load_type", type=str)
-    parser.add_argument("--dx", type=int)
-    parser.add_argument("--dy", type=int)
-    parser.add_argument("--scale_factor", type=float)
-    parser.add_argument("--refile", type=str, required=True)
-    parser.add_argument("--save_path", type=str, required=True)
-    parser.add_argument("--mode", type=str, required=True)
+    parser.add_argument('--spatial_path', type=str)
+    parser.add_argument('--counts_data', default='', type=str)
+    parser.add_argument('--full_res_image_path', type=str)
+    parser.add_argument('--load_type', type=str)
+    parser.add_argument('--dx', type=int)
+    parser.add_argument('--dy', type=int)
+    parser.add_argument('--scale_factor', type=float)
+    parser.add_argument('--refile', type=str, required=True)
+    parser.add_argument('--save_path', type=str, required=True)
+    parser.add_argument('--mode', type=str, required=True)
     args = parser.parse_args()
 
     main(args)

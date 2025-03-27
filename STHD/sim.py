@@ -47,9 +47,9 @@ def simulate_spot_bin_2cell(
 
     # Plotting
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(x_grid, y_grid, color="blue")
-    plt.xlabel("X-axis")
-    plt.ylabel("Y-axis")
+    ax.scatter(x_grid, y_grid, color='blue')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
     # plt.xlim(-side_length / 2-1, side_length / 2+1)
     # plt.xlim(0-1, side_length+1)
     # plt.ylim(-side_length / 2-1, side_length / 2+1)
@@ -58,34 +58,36 @@ def simulate_spot_bin_2cell(
     # plt.grid(False)
 
     ########## 8um bins ##########
-    ## add bin boundary
+    # add bin boundary
     lst = x + 0.5
     N = 4
-    binxs = lst[N - 1 :: N]
+    binxs = lst[N - 1:: N]
     for xt in binxs:
-        ax.axvline(xt, color="gray")
+        ax.axvline(xt, color='gray')
 
     lst = y + 0.5
-    binys = lst[N - 1 :: N]
+    binys = lst[N - 1:: N]
     N = 4
     for yt in binys:
-        ax.axhline(yt, color="gray")
+        ax.axhline(yt, color='gray')
 
     ######## cell mask ##########
 
     # center1 = (4, 4)
     # radius1 = 4
-    mask1 = ((x_grid - center1[0]) ** 2 + (y_grid - center1[1]) ** 2) <= radius1**2
+    mask1 = ((x_grid - center1[0]) ** 2 +
+             (y_grid - center1[1]) ** 2) <= radius1**2
 
     # center2 = (9, 9)
     # radius2 =4
-    mask2 = ((x_grid - center2[0]) ** 2 + (y_grid - center2[1]) ** 2) <= radius2**2
+    mask2 = ((x_grid - center2[0]) ** 2 +
+             (y_grid - center2[1]) ** 2) <= radius2**2
     # remove mask1 in mask2, to make sure per spot is from one cell.
     mask_overlap = mask1 & mask2
     mask1[mask_overlap] = False
 
-    ax.scatter(x_grid[mask1], y_grid[mask1], color="orange")
-    ax.scatter(x_grid[mask2], y_grid[mask2], color="green")
+    ax.scatter(x_grid[mask1], y_grid[mask1], color='orange')
+    ax.scatter(x_grid[mask2], y_grid[mask2], color='green')
     plt.show()
     return (x, y, x_grid, y_grid, binxs, binys, mask1, mask2)
 
@@ -116,16 +118,16 @@ def simulate_spot_expr_2cell(
     """
     # create expression of spots for 2 cells of 2 cell types, marked by 2 marker genes.
 
-    ## create an empty expr adata
+    # create an empty expr adata
     total_spot_num = x_grid.shape[0] * x_grid.shape[1]
     spotid_lst = [t for t in range(total_spot_num)]
-    barcode_lst = ["barcode_" + str(t) for t in range(total_spot_num)]
+    barcode_lst = [f'barcode_{str(t)}' for t in range(total_spot_num)]
 
     obs = pd.DataFrame(
-        {"cellid": spotid_lst},
+        {'cellid': spotid_lst},
         index=barcode_lst,
     )
-    var = pd.DataFrame(index=["geneA", "geneB", "geneC"])
+    var = pd.DataFrame(index=['geneA', 'geneB', 'geneC'])
     expr = pd.DataFrame(np.zeros([obs.shape[0], var.shape[0]]))
     expr.index = obs.index
     expr.columns = var.index
@@ -134,20 +136,20 @@ def simulate_spot_expr_2cell(
     iscell1_i = np.array(spotid_lst)[(mask1).flatten()]
     iscell2_i = np.array(spotid_lst)[(mask2).flatten()]
 
-    obs["celltype"] = ""
-    obs["iscell"] = False
-    obs.loc[obs.iloc[iscell1_i].index, "celltype"] = "ct1"
-    obs.loc[obs.iloc[iscell2_i].index, "celltype"] = "ct2"
-    obs.loc[obs.iloc[iscell1_i].index, "iscell"] = True
+    obs['celltype'] = ''
+    obs['iscell'] = False
+    obs.loc[obs.iloc[iscell1_i].index, 'celltype'] = 'ct1'
+    obs.loc[obs.iloc[iscell2_i].index, 'celltype'] = 'ct2'
+    obs.loc[obs.iloc[iscell1_i].index, 'iscell'] = True
 
-    ## location of each spot
-    obs["x"] = x_grid.flatten()
-    obs["y"] = y_grid.flatten()
-    obsm = {"spatial": obs[["x", "y"]].values}
+    # location of each spot
+    obs['x'] = x_grid.flatten()
+    obs['y'] = y_grid.flatten()
+    obsm = {'spatial': obs[['x', 'y']].values}
 
     # simulate expression
-    ct1_ids = obs[obs["celltype"] == "ct1"].index
-    ct2_ids = obs[obs["celltype"] == "ct2"].index
+    ct1_ids = obs[obs['celltype'] == 'ct1'].index
+    ct2_ids = obs[obs['celltype'] == 'ct2'].index
 
     ct1geneA = np.random.poisson(lam=lam_ct1geneA, size=[len(ct1_ids)])
     ct1geneB = np.random.poisson(lam=lam_ct1geneB, size=[len(ct1_ids)])
@@ -155,19 +157,19 @@ def simulate_spot_expr_2cell(
     ct2geneB = np.random.poisson(lam=lam_ct2geneB, size=[len(ct2_ids)])
     # print(ct1geneA)
     # print( expr.loc[ct1_ids]['geneA'].values)
-    expr.loc[ct1_ids, "geneA"] = expr.loc[ct1_ids]["geneA"].values + ct1geneA
+    expr.loc[ct1_ids, 'geneA'] = expr.loc[ct1_ids]['geneA'].values + ct1geneA
     # print( expr.loc[ct1_ids]['geneA'].values)
-    expr.loc[ct1_ids, "geneB"] = expr.loc[ct1_ids]["geneB"].values + ct1geneB
-    expr.loc[ct2_ids, "geneA"] = expr.loc[ct2_ids]["geneA"].values + ct2geneA
-    expr.loc[ct2_ids, "geneB"] = expr.loc[ct2_ids]["geneB"].values + ct2geneB
+    expr.loc[ct1_ids, 'geneB'] = expr.loc[ct1_ids]['geneB'].values + ct1geneB
+    expr.loc[ct2_ids, 'geneA'] = expr.loc[ct2_ids]['geneA'].values + ct2geneA
+    expr.loc[ct2_ids, 'geneB'] = expr.loc[ct2_ids]['geneB'].values + ct2geneB
 
     # simulate background noise
     geneN = np.random.poisson(lam=lam_noise, size=obs.shape[0])
     geneC = np.random.poisson(lam=lam_geneC, size=obs.shape[0])
-    expr["geneA"] = expr["geneA"].values + geneN
-    expr["geneB"] = expr["geneB"].values + geneN
+    expr['geneA'] = expr['geneA'].values + geneN
+    expr['geneB'] = expr['geneB'].values + geneN
     # add a 3rd unrelated gene
-    expr.loc[:, "geneC"] = geneC
+    expr.loc[:, 'geneC'] = geneC
 
     adata = anndata.AnnData(expr, obs=obs, var=var, obsm=obsm)
 

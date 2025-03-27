@@ -56,14 +56,24 @@ def fill_F(X, Y, Z, N, Lambda, D, F):
 
 
 def prepare_constants(sthd_data):
+    """
+    Prepare constants and training weights
+
+    Args:
+        sthd_data: sthdio.STHD object
+
+    Returns:
+        X, Y, Z, F, Acsr_row, Acsr_col
+    """
     X = sthd_data.adata.obs.shape[0]  # n of spot
     Y = sthd_data.adata.shape[1]  # n of gene (filtered )
     Z = sthd_data.lambda_cell_type_by_gene_matrix.shape[0]  # n of cell type
 
     # get raw data
-    N = sthd_data.adata.to_df().values  # [X,Y] (a,g) number of total reads in each spot
+    # [X,Y] (a,g) number of total reads in each spot
+    N = sthd_data.adata.to_df().values
     Lambda = sthd_data.lambda_cell_type_by_gene_matrix.astype(
-        "float32"
+        'float32'
     )  # [Z,Y] (t,g) gene's relative expression in each cell type.
     D = (
         np.squeeze(np.asarray(sthd_data.adata.X.sum(axis=1))) + 0.1
@@ -71,31 +81,31 @@ def prepare_constants(sthd_data):
 
     # get neighbor adjacency matrix
     sq.gr.spatial_neighbors(
-        sthd_data.adata, spatial_key="spatial", coord_type="grid", n_neighs=4, n_rings=2
+        sthd_data.adata, spatial_key='spatial', coord_type='grid', n_neighs=4, n_rings=2
     )
-    A_csr = sthd_data.adata.obsp["spatial_connectivities"]  # [X, X]
-    print("Currently we only support symmetric adjacency matrix of neighbors")
+    A_csr = sthd_data.adata.obsp['spatial_connectivities']  # [X, X]
+    print('Currently we only support symmetric adjacency matrix of neighbors')
     Acsr_row = A_csr.indptr
     Acsr_col = A_csr.indices
 
-    F = np.zeros([X, Z], dtype="float32")
+    F = np.zeros([X, Z], dtype='float32')
     fill_F(X, Y, Z, N, Lambda, D, F)
     return X, Y, Z, F, Acsr_row, Acsr_col
 
 
 def prepare_training_weights(X, Y, Z):
     # prepare training parameters
-    W = np.ones([X, Z]).astype("float32")  # initialization
+    W = np.ones([X, Z]).astype('float32')  # initialization
     # prepare derived parameters
-    eW = np.zeros([X, Z], dtype="float32")
-    P = np.zeros([X, Z], dtype="float32")
-    Phi = np.zeros([X], dtype="float32")
+    eW = np.zeros([X, Z], dtype='float32')
+    P = np.zeros([X, Z], dtype='float32')
+    Phi = np.zeros([X], dtype='float32')
     # prepare deriatives
-    ll_wat = np.zeros([X, Z], dtype="float32")
-    ce_wat = np.zeros([X, Z], dtype="float32")
+    ll_wat = np.zeros([X, Z], dtype='float32')
+    ce_wat = np.zeros([X, Z], dtype='float32')
     # additional variables for adam
-    m = np.zeros([X, Z], dtype="float32")
-    v = np.zeros([X, Z], dtype="float32")
+    m = np.zeros([X, Z], dtype='float32')
+    v = np.zeros([X, Z], dtype='float32')
     return W, eW, P, Phi, ll_wat, ce_wat, m, v
 
 
@@ -156,7 +166,8 @@ def train(
         update_ll_wat(ll_wat, P, F, X, Y, Z)
         update_ce_wat(ce_wat, P, Acsr_row, Acsr_col, X, Y, Z)
         update_m_v(m, v, beta1, beta2, beta, ll_wat, ce_wat, X, Y, Z)
-        update_W_adam(W, m, v, beta1, beta2, i + 1, step_size, epsilon, X, Y, Z)
+        update_W_adam(W, m, v, beta1, beta2, i + 1,
+                      step_size, epsilon, X, Y, Z)
         ll = calculate_ll(P, F, X, Y, Z)
         ce = calculate_ce(P, Acsr_row, Acsr_col, X, Y, Z)
         metrics.append((ll, ce))
@@ -263,7 +274,8 @@ def update_ll_wat(ll_wat, P, F, X, Y, Z):
 @njit(parallel=True, fastmath=True)
 def update_ce_wat(ce_wat, P, Acsr_row, Acsr_col, X, Y, Z):
     for a_tilda in prange(X):
-        neighbors = csr_obtain_column_index_for_row(Acsr_row, Acsr_col, a_tilda)
+        neighbors = csr_obtain_column_index_for_row(
+            Acsr_row, Acsr_col, a_tilda)
         # Since Acsr is symetric, neighbors of a_tilda is also the spots whose neighbor contains a_tilda
         for t_tilda in range(Z):
             comp1 = 0  # neighbors of a_tilda
@@ -274,7 +286,8 @@ def update_ce_wat(ce_wat, P, Acsr_row, Acsr_col, X, Y, Z):
                     cur1 = cur1 + P[a_tilda, t] * np.log(P[a_star, t])
                 comp1 = comp1 + np.log(P[a_star, t_tilda]) - cur1
                 comp2 = comp2 + P[a_star, t_tilda] - P[a_tilda, t_tilda]
-            ce_wat[a_tilda, t_tilda] = (-P[a_tilda, t_tilda] * comp1 - comp2) / X
+            ce_wat[a_tilda, t_tilda] = (-P[a_tilda, t_tilda]
+                                        * comp1 - comp2) / X
 
 
 # ----------------------- (DEPRECATED! USE ADAM!) Optimizer: gradient descent -------------------

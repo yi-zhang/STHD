@@ -25,15 +25,17 @@ def get_raw_bins(adata, nspot):
     The bin_id is "{bin_row}||{bin_col}"
     """
     array_row_min, array_col_min = (
-        adata.obs["array_row"].min(),
-        adata.obs["array_col"].min(),
+        adata.obs['array_row'].min(),
+        adata.obs['array_col'].min(),
     )
     bin_row = (
-        ((adata.obs["array_row"].values - array_row_min) // nspot).astype(int) * nspot
+        ((adata.obs['array_row'].values - array_row_min) //
+         nspot).astype(int) * nspot
         + array_row_min
     ).astype(int)
     bin_col = (
-        ((adata.obs["array_col"].values - array_col_min) // nspot).astype(int) * nspot
+        ((adata.obs['array_col'].values - array_col_min) //
+         nspot).astype(int) * nspot
         + array_col_min
     ).astype(int)
 
@@ -41,7 +43,7 @@ def get_raw_bins(adata, nspot):
         list
     )  # []defaultdict must guarantee order of bins. e.g. python>3.7
     for i in tqdm(range(len(bin_row))):
-        bins[f"{bin_row[i]}||{bin_col[i]}"].append(i)
+        bins[f'{bin_row[i]}||{bin_col[i]}'].append(i)
     return bins
 
 
@@ -50,22 +52,24 @@ def get_bins(adata, nspot):
     The bin_id is "{bin_row}||{bin_col}||{cell_type}"
     """
     array_row_min, array_col_min = (
-        adata.obs["array_row"].min(),
-        adata.obs["array_col"].min(),
+        adata.obs['array_row'].min(),
+        adata.obs['array_col'].min(),
     )
     bin_row = (
-        ((adata.obs["array_row"].values - array_row_min) // nspot).astype(int) * nspot
+        ((adata.obs['array_row'].values - array_row_min) //
+         nspot).astype(int) * nspot
         + array_row_min
     ).astype(int)
     bin_col = (
-        ((adata.obs["array_col"].values - array_col_min) // nspot).astype(int) * nspot
+        ((adata.obs['array_col'].values - array_col_min) //
+         nspot).astype(int) * nspot
         + array_col_min
     ).astype(int)
-    bin_ct = adata.obs["STHD_pred_ct"].values
+    bin_ct = adata.obs['STHD_pred_ct'].values
 
     bins = defaultdict(list)
     for i in tqdm(range(len(bin_row))):
-        bins[f"{bin_row[i]}||{bin_col[i]}||{bin_ct[i]}"].append(i)
+        bins[f'{bin_row[i]}||{bin_col[i]}||{bin_ct[i]}'].append(i)
     return bins
 
 
@@ -79,9 +83,9 @@ def bin_X(adata, bins):
     return np.array(bin_value)
 
 
-def bin_obsm(adata, bins, obsm_key_list=["spatial"]):
+def bin_obsm(adata, bins, obsm_key_list=['spatial']):
     obsm_res = dict()
-    print("[Log] binning obsm...")
+    print('[Log] binning obsm...')
     for obsm_key in obsm_key_list:
         bin_value = []
         for bid in tqdm(bins, total=len(bins)):
@@ -102,9 +106,9 @@ def bin_raw_obs(adata, bins):
     barcodes = np.array(list(adata.obs.index))
 
     bin_id_list = list(bins.keys())
-    print("[Log] binning obs...")
+    print('[Log] binning obs...')
     for bid in tqdm(bin_id_list, total=len(bin_id_list)):
-        cur_bin_row, cur_bin_col = bid.split("||")
+        cur_bin_row, cur_bin_col = bid.split('||')
         cur_ids = bins[bid]
 
         cur_bin_n_spot = len(cur_ids)
@@ -118,11 +122,11 @@ def bin_raw_obs(adata, bins):
         val_bin_n_spot.append(cur_bin_n_spot)
     return pd.DataFrame(
         {
-            "bin_row": val_bin_row,
-            "bin_col": val_bin_col,
-            "barcodes_included": val_barcodes_included,
-            "n_counts": val_n_counts,
-            "bin_n_spot": val_bin_n_spot,
+            'bin_row': val_bin_row,
+            'bin_col': val_bin_col,
+            'barcodes_included': val_barcodes_included,
+            'n_counts': val_n_counts,
+            'bin_n_spot': val_bin_n_spot,
         },
         index=bin_id_list,
     )
@@ -139,9 +143,9 @@ def bin_obs(adata, bins):
     barcodes = np.array(list(adata.obs.index))
 
     bin_id_list = list(bins.keys())
-    print("[Log] binning obs...")
+    print('[Log] binning obs...')
     for bid in tqdm(bin_id_list, total=len(bin_id_list)):
-        cur_bin_row, cur_bin_col, cur_STHD_pred_ct = bid.split("||")
+        cur_bin_row, cur_bin_col, cur_STHD_pred_ct = bid.split('||')
         cur_ids = bins[bid]
 
         cur_bin_n_spot = len(cur_ids)
@@ -156,18 +160,18 @@ def bin_obs(adata, bins):
         val_bin_n_spot.append(cur_bin_n_spot)
     return pd.DataFrame(
         {
-            "bin_row": val_bin_row,
-            "bin_col": val_bin_col,
-            "STHD_pred_ct": val_STHD_pred_ct,
-            "barcodes_included": val_barcodes_included,
-            "n_counts": val_n_counts,
-            "bin_n_spot": val_bin_n_spot,
+            'bin_row': val_bin_row,
+            'bin_col': val_bin_col,
+            'STHD_pred_ct': val_STHD_pred_ct,
+            'barcodes_included': val_barcodes_included,
+            'n_counts': val_n_counts,
+            'bin_n_spot': val_bin_n_spot,
         },
         index=bin_id_list,
     )
 
 
-def bin_obs_v2(adata, bins, extra_obs_col=""):
+def bin_obs_v2(adata, bins, extra_obs_col=''):
     """Temp for : extra obs cols, has to be numerical"""
     val_bin_row = []
     val_bin_col = []
@@ -180,9 +184,9 @@ def bin_obs_v2(adata, bins, extra_obs_col=""):
     barcodes = np.array(list(adata.obs.index))
 
     bin_id_list = list(bins.keys())
-    print("[Log] binning obs...")
+    print('[Log] binning obs...')
     for bid in tqdm(bin_id_list, total=len(bin_id_list)):
-        cur_bin_row, cur_bin_col, cur_STHD_pred_ct = bid.split("||")
+        cur_bin_row, cur_bin_col, cur_STHD_pred_ct = bid.split('||')
         cur_ids = bins[bid]
 
         cur_bin_n_spot = len(cur_ids)
@@ -201,13 +205,13 @@ def bin_obs_v2(adata, bins, extra_obs_col=""):
 
     return pd.DataFrame(
         {
-            "bin_row": val_bin_row,
-            "bin_col": val_bin_col,
-            "STHD_pred_ct": val_STHD_pred_ct,
-            "barcodes_included": val_barcodes_included,
-            "n_counts": val_n_counts,
-            "bin_n_spot": val_bin_n_spot,
-            "extra_obs_col": val_extra_obs_col,
+            'bin_row': val_bin_row,
+            'bin_col': val_bin_col,
+            'STHD_pred_ct': val_STHD_pred_ct,
+            'barcodes_included': val_barcodes_included,
+            'n_counts': val_n_counts,
+            'bin_n_spot': val_bin_n_spot,
+            'extra_obs_col': val_extra_obs_col,
         },
         index=bin_id_list,
     )
@@ -239,7 +243,8 @@ def concatenate_csr_matrices(matrix_list):
     ncol = matrix_list[0].shape[1]
     for m in matrix_list:
         if m.shape[1] != ncol:
-            raise ValueError("Number of columns must be the same for all matrices.")
+            raise ValueError(
+                'Number of columns must be the same for all matrices.')
 
     n_val = 0
     n_row = 0
@@ -254,11 +259,11 @@ def concatenate_csr_matrices(matrix_list):
     i = 0  # index for both data and indices
     j = 0  # index for indptr
     s = 0  # adjustment for indptr
-    print("[LOG] Constructing adata.X as a sparse matrix")
+    print('[LOG] Constructing adata.X as a sparse matrix')
     for m in tqdm(matrix_list, total=len(matrix_list)):
-        res_data[i : i + len(m.data)] = m.data
-        res_indices[i : i + len(m.indices)] = m.indices
-        res_indptr[j : j + len(m.indptr) - 1] = m.indptr[1:] + s
+        res_data[i: i + len(m.data)] = m.data
+        res_indices[i: i + len(m.indices)] = m.indices
+        res_indptr[j: j + len(m.indptr) - 1] = m.indptr[1:] + s
 
         i += len(m.data)
         j += len(m.indptr) - 1
@@ -267,7 +272,8 @@ def concatenate_csr_matrices(matrix_list):
     res_indptr[1:] = res_indptr[:-1]
     res_indptr[0] = 0
     concatenated_matrix = sp.csr_matrix(
-        (res_data, res_indices, res_indptr), shape=(len(res_indptr) - 1, m.shape[1])
+        (res_data, res_indices, res_indptr), shape=(
+            len(res_indptr) - 1, m.shape[1])
     )
     return concatenated_matrix
 
@@ -307,11 +313,11 @@ def get_raw_bin_adata(sthdata, nspot=4, min_nspot_to_aggregate=2, use_csr=True):
         uns=sthdata.adata.uns.copy(),  # original uns, image
     )
     # filter minimum spot number
-    binadata = binadata[binadata.obs["bin_n_spot"] >= min_nspot_to_aggregate]
+    binadata = binadata[binadata.obs['bin_n_spot'] >= min_nspot_to_aggregate]
 
     # change list to comma
-    binadata.obs["barcodes_included"] = binadata.obs["barcodes_included"].str.join(
-        sep=","
+    binadata.obs['barcodes_included'] = binadata.obs['barcodes_included'].str.join(
+        sep=','
     )
     print(binadata)
     return binadata
@@ -319,10 +325,10 @@ def get_raw_bin_adata(sthdata, nspot=4, min_nspot_to_aggregate=2, use_csr=True):
 
 def get_sthd_guided_bin_adata(
     sthdata,
-    pred_col="STHD_pred_ct",
+    pred_col='STHD_pred_ct',
     nspot=4,
     remove_ambiguous_spot=True,
-    ambiguous_spot_celltypes=["ambiguous", "filtered"],
+    ambiguous_spot_celltypes=['ambiguous', 'filtered'],
     min_nspot_to_aggregate=2,
     use_csr=True,
 ):
@@ -378,15 +384,16 @@ def get_sthd_guided_bin_adata(
 
     binadata.obsm['spatial'] = obs_binned[['x','y']].values
     """
-    print("[Log] remove classes to be filtered out...")
+    print('[Log] remove classes to be filtered out...')
     if remove_ambiguous_spot:  # Optional: remove ambiguous and filtered
-        binadata = binadata[~binadata.obs[pred_col].isin(ambiguous_spot_celltypes)]
-    print("[Log] filter minimum spot number...")
-    binadata = binadata[binadata.obs["bin_n_spot"] >= min_nspot_to_aggregate]
+        binadata = binadata[~binadata.obs[pred_col].isin(
+            ambiguous_spot_celltypes)]
+    print('[Log] filter minimum spot number...')
+    binadata = binadata[binadata.obs['bin_n_spot'] >= min_nspot_to_aggregate]
 
     # change list to comma
-    binadata.obs["barcodes_included"] = binadata.obs["barcodes_included"].str.join(
-        sep=","
+    binadata.obs['barcodes_included'] = binadata.obs['barcodes_included'].str.join(
+        sep=','
     )
     print(binadata)
     return binadata
@@ -394,13 +401,13 @@ def get_sthd_guided_bin_adata(
 
 def get_sthd_guided_bin_adata_v2(
     adata,
-    pred_col="STHD_pred_ct",
+    pred_col='STHD_pred_ct',
     nspot=4,
     remove_ambiguous_spot=True,
-    ambiguous_spot_celltypes=["ambiguous", "filtered"],
+    ambiguous_spot_celltypes=['ambiguous', 'filtered'],
     min_nspot_to_aggregate=2,
     use_csr=True,
-    obs_extra_col_tocollapse="",
+    obs_extra_col_tocollapse='',
 ):
     """Version 2. change input from STHD to adata.
     Bin aggregating data, guided by STHD predicted cell type identities of spots. E.g. if one bin has 2 types of spots, they will be aggregated separately, and location is determined by taking mean of x or y for the included spot barcodes
@@ -431,7 +438,7 @@ def get_sthd_guided_bin_adata_v2(
         X_binned = bin_X_csr(adata, bins)
     else:
         X_binned = bin_X(adata, bins)
-    if obs_extra_col_tocollapse != "":
+    if obs_extra_col_tocollapse != '':
         obs_binned = bin_obs_v2(adata, bins, obs_extra_col_tocollapse)
     else:
         obs_binned = bin_obs(adata, bins)
@@ -459,15 +466,16 @@ def get_sthd_guided_bin_adata_v2(
 
     binadata.obsm['spatial'] = obs_binned[['x','y']].values
     """
-    print("[Log] remove classes to be filtered out...")
+    print('[Log] remove classes to be filtered out...')
     if remove_ambiguous_spot:  # Optional: remove ambiguous and filtered
-        binadata = binadata[~binadata.obs[pred_col].isin(ambiguous_spot_celltypes)]
-    print("[Log] filter minimum spot number...")
-    binadata = binadata[binadata.obs["bin_n_spot"] >= min_nspot_to_aggregate]
+        binadata = binadata[~binadata.obs[pred_col].isin(
+            ambiguous_spot_celltypes)]
+    print('[Log] filter minimum spot number...')
+    binadata = binadata[binadata.obs['bin_n_spot'] >= min_nspot_to_aggregate]
 
     # change list to comma
-    binadata.obs["barcodes_included"] = binadata.obs["barcodes_included"].str.join(
-        sep=","
+    binadata.obs['barcodes_included'] = binadata.obs['barcodes_included'].str.join(
+        sep=','
     )
     print(binadata)
     return binadata
@@ -475,11 +483,11 @@ def get_sthd_guided_bin_adata_v2(
 
 def main(args):
     if os.path.isfile(args.outfile):
-        print("[Warning] file already exist. skipping binning...")
+        print('[Warning] file already exist. skipping binning...')
         sys.exit(0)
     sthdata = train.load_data_with_pdata(file_path=args.patch_path)
-    if args.mode == "STHD":
-        print("[Log] STHD guided binning...")
+    if args.mode == 'STHD':
+        print('[Log] STHD guided binning...')
         binadata_sthd = get_sthd_guided_bin_adata(
             sthdata,
             pred_col=args.pred_col,
@@ -488,17 +496,17 @@ def main(args):
             ambiguous_spot_celltypes=args.ambiguous_spot_celltypes,
             min_nspot_to_aggregate=args.min_nspot_to_aggregate,
         )
-        print("[Log] Saving to ", args.outfile)
+        print('[Log] Saving to ', args.outfile)
         binadata_sthd.write(args.outfile)
 
-    elif args.mode == "raw":
-        print("[Log] raw binning...")
+    elif args.mode == 'raw':
+        print('[Log] raw binning...')
         binrawadata = get_raw_bin_adata(sthdata, nspot=args.nspot)
-        print("[Log] Saving to ", args.outfile)
+        print('[Log] Saving to ', args.outfile)
         binrawadata.write(args.outfile)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     """
     Example
     ----------
@@ -506,40 +514,40 @@ if __name__ == "__main__":
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--patch_path", type=str, help="Path of STHD result")
+    parser.add_argument('--patch_path', type=str, help='Path of STHD result')
     parser.add_argument(
-        "--nspot",
+        '--nspot',
         type=int,
         default=4,
-        help="number of spots to aggregate along each side",
+        help='number of spots to aggregate along each side',
     )
     parser.add_argument(
-        "--outfile", type=str, default="../binned.h5ad", help="path to save binned h5ad"
+        '--outfile', type=str, default='../binned.h5ad', help='path to save binned h5ad'
     )
-    parser.add_argument("--mode", type=str, default="STHD", help="STHD or raw")
+    parser.add_argument('--mode', type=str, default='STHD', help='STHD or raw')
     parser.add_argument(
-        "--remove_ambiguous_spot",
+        '--remove_ambiguous_spot',
         type=bool,
         default=True,
-        help="Whether to remove ambiguous spots or not, based on pred_col",
+        help='Whether to remove ambiguous spots or not, based on pred_col',
     )
     parser.add_argument(
-        "--ambiguous_spot_celltypes",
+        '--ambiguous_spot_celltypes',
         type=list,
-        default=["ambiguous", "filtered"],
-        help="name of ambiguous cell identify for spots",
+        default=['ambiguous', 'filtered'],
+        help='name of ambiguous cell identify for spots',
     )
     parser.add_argument(
-        "--min_nspot_to_aggregate",
+        '--min_nspot_to_aggregate',
         type=int,
         default=2,
-        help="require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.",
+        help='require that at least min_nspot_to_aggregate number of spots are in the bin to get an aggregated count.',
     )
     parser.add_argument(
-        "--pred_col",
+        '--pred_col',
         type=str,
-        default="STHD_pred_ct",
-        help="cell type column to aggregate",
+        default='STHD_pred_ct',
+        help='cell type column to aggregate',
     )
     args = parser.parse_args()
 
