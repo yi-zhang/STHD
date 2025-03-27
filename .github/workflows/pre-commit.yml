@@ -2,9 +2,11 @@ name: Python Project CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:  
+    - "*" # check on all branches
   pull_request:
-    branches: [ main, develop ]
+    branches:  
+    - "*" # check on all branches
 
 jobs:
   code-quality:
