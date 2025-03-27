@@ -1,0 +1,29 @@
+name: Run Pre-Commit Checks
+
+on:
+  push:
+    branches:
+      - "*" # check on all branches
+  pull_request:
+    branches:
+      - "*"  # Also run on PR for all
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'  # or your preferred Python version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pre-commit autopep8
+      - name: Run pre-commit
+        run: pre-commit run --all-files
