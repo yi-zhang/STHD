@@ -134,4 +134,7 @@ requirements.txt
 
 ## Reference
 
-Sun C*, Yi Zhang*#. "STHD: probabilistic cell typing of single Spots in whole Transcriptome spatial data with High Definition". (2024) bioRxiv 2024.06.20.599803. [Preprint link](https://www.biorxiv.org/content/10.1101/2024.06.20.599803v1)
+Sun C*, Yi Zhang*#. "STHD: probabilistic cell typing of single Spots in whole Transcriptome spatial data with High Definition". (2024) bioRxiv 2024.06.20.599803. [Preprint link](https://www.biorxiv.org/content/10.1101/2024.06.20.599803)
+
+## Issues
+Please contact Dr. Yi Zhang (yi.zhang[at]duke.edu) for desired addon features. You are welcome to follow our work by checking the [Zhang lab at Duke](http://yi-zhang-compbio-lab.github.io/)! 
